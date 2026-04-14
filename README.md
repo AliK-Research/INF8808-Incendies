@@ -34,7 +34,7 @@ code blocks for commands
  Paul Besse
  ()
  Robin Holden
- ()
+ (robin.holden@etud.polymtl.ca)
 
 ## Historique des versions
 
