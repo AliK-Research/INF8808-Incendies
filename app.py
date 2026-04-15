@@ -640,10 +640,12 @@ def make_waffle():
             text=matrix,
             hovertemplate="%{text}<extra></extra>",
             colorscale=colorscale,
+            zmin=0,
+            zmax=len(SEVERITY_COLORS) - 1,
             showscale=False,
             xgap=1,
-            ygap=1,
-        ), row=i // n_cols + 1, col=i % n_cols + 1)
+            ygap=1,),
+            row=i // n_cols + 1, col=i % n_cols + 1)
 
     fig.update_layout(
         title_text="Gravité des interventions par arrondissement",
