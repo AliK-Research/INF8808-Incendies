@@ -575,22 +575,147 @@ def make_temporal(scale):
     return finish_figure(fig, 540)
 
 
+import plotly.graph_objects as go
+import pandas as pd
+
+import pandas as pd
+import plotly.graph_objects as go
+
 def make_boxplot():
     top_types = interventions["incident_type"].value_counts().head(15).index
     df = interventions[interventions["incident_type"].isin(top_types)].copy()
     df["nombre_unites"] = df["nombre_unites"].fillna(0)
 
-    order = df.groupby("incident_type")["nombre_unites"].median().sort_values(ascending=False).index.tolist()
-    fig = px.box(
-        df,
-        x="nombre_unites",
-        y="incident_type",
-        color_discrete_sequence=["#b7380d"],
-        category_orders={"incident_type": order},
-        title="Distribution des unités mobilisées par type d'incident",
-        labels={"nombre_unites": "Nombre d'unités (intensité)", "incident_type": "Type d'incident"},
+    stats_rows = []
+    outlier_rows = []
+
+    for incident_type, s in df.groupby("incident_type")["nombre_unites"]:
+        s = s.dropna().sort_values()
+
+        if s.empty:
+            continue
+        q1 = s.quantile(0.25)
+        median = s.quantile(0.50)
+        q3 = s.quantile(0.75)
+        iqr = q3 - q1
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+
+        inside_fences = s[(s >= lower_bound) & (s <= upper_bound)]
+        lower_fence = inside_fences.min() if not inside_fences.empty else s.min()
+        upper_fence = inside_fences.max() if not inside_fences.empty else s.max()
+
+        stats_rows.append({
+            "incident_type": incident_type,
+            "min": s.min(),
+            "lower_fence": lower_fence,
+            "q1": q1,
+            "median": median,
+            "q3": q3,
+            "upper_fence": upper_fence,
+            "max": s.max(),
+        })
+
+        outliers = s[(s < lower_fence) | (s > upper_fence)]
+
+        if not outliers.empty:
+            low_extreme = outliers.min()
+            high_extreme = outliers.max()
+
+            for value in outliers:
+                label = ""
+                if value == low_extreme:
+                    label = "Outlier extrême bas"
+                elif value == high_extreme:
+                    label = "Outlier extrême haut"
+                outlier_rows.append({
+                    "incident_type": incident_type,
+                    "nombre_unites": value,
+                    "label": label,
+                })
+
+    stats_df = pd.DataFrame(stats_rows)
+    stats_df = stats_df.sort_values("median", ascending=False)
+    order = stats_df["incident_type"].tolist()
+
+    fig = go.Figure()
+
+    for row in stats_df.itertuples(index=False):
+        fig.add_trace(
+            go.Box(
+                orientation="h",
+                y0=row.incident_type,
+                q1=[row.q1],
+                median=[row.median],
+                q3=[row.q3],
+                lowerfence=[row.lower_fence],
+                upperfence=[row.upper_fence],
+                boxpoints=False,
+                line=dict(color="#b7380d"),
+                fillcolor="rgba(183, 56, 13, 0.35)",
+                showlegend=False,
+                name="",
+                customdata=[[
+                    row.min,
+                    row.lower_fence,
+                    row.q1,
+                    row.median,
+                    row.q3,
+                    row.upper_fence,
+                    row.max,
+                    row.incident_type,
+                ]],
+                hovertemplate=(
+                    "<b>%{customdata[7]}</b><br>"
+                    "min: %{customdata[0]:.0f}<br>"
+                    "lower fence: %{customdata[1]:.0f}<br>"
+                    "q1: %{customdata[2]:.0f}<br>"
+                    "median: %{customdata[3]:.0f}<br>"
+                    "q3: %{customdata[4]:.0f}<br>"
+                    "upper fence: %{customdata[5]:.0f}<br>"
+                    "max: %{customdata[6]:.0f}"
+                    "<extra></extra>"
+                ),
+            )
+        )
+
+    if outlier_rows:
+        outliers_df = pd.DataFrame(outlier_rows)
+        for incident_type, g in outliers_df.groupby("incident_type", sort=False):
+            fig.add_trace(
+                go.Scatter(
+                    x=g["nombre_unites"],
+                    y=[incident_type] * len(g),
+                    mode="markers",
+                    marker=dict(
+                        color="#b7380d",
+                        size=8,
+                    ),
+                    showlegend=False,
+                    name="",
+                    customdata=g[["label"]].values,
+                    hovertemplate=(
+                    "%{x:.0f}<br>"
+                    "%{customdata[0]}"
+                    "<extra></extra>"
+                    ),
     )
-    fig.update_layout(showlegend=False, margin=dict(l=215, r=35, t=65, b=65))
+)
+
+    fig.update_layout(
+        title="Distribution des unités mobilisées par type d'incident",
+        xaxis_title="Nombre d'unités (intensité)",
+        yaxis_title="Type d'incident",
+        showlegend=False,
+        margin=dict(l=215, r=35, t=65, b=65),
+        hovermode="y unified",
+    )
+    fig.update_yaxes(
+        categoryorder="array",
+        categoryarray=order,
+        autorange="reversed"
+    )
+
     return finish_figure(fig, 580)
 
 
