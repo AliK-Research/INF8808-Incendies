@@ -233,7 +233,7 @@ def build_zone_stats():
     stats = totals.merge(pivot, on="zone", how="left").fillna(0)
    
     try:
-        df_final = pd.read_csv('Data/stats_zones_final.csv')
+        df_final = pd.read_csv('data/stats_zones_final.csv')
         df_extra = df_final[['ZONE', 'Population', 'Nb_Casernes']]
 
         stats = stats.merge(df_extra, left_on="zone", right_on="ZONE", how="left")
