@@ -13,13 +13,13 @@ from dash import Dash, Input, Output, dcc, html
 from plotly.subplots import make_subplots
 
 
-INTERVENTIONS_RESOURCE = "https://donnees.montreal.ca/dataset/interventions-service-securite-incendie-montreal/resource/4a46d93f-9fd9-4cce-8952-424918edeafe"
-CASERNES_RESOURCE = "https://donnees.montreal.ca/dataset/casernes-pompiers/resource/5b9c0e1d-3f75-4e98-b53d-6e979c18cc98"
-LIMITES_GEOJSON_URL = "https://donnees.montreal.ca/dataset/9797a946-9da8-41ec-8815-f6b276dec7e9/resource/e18bfd07-edc8-4ce8-8a5a-3b617662a794/download/limites-administratives-agglomeration.geojson"
+INTERVENTIONS_FILE = "data/interventions.csv"
+CASERNES_FILE = "data/casernes.csv"
+LIMITES_GEOJSON_FILE = "data/limites-administratives-agglomeration.geojson"
 
 CACHE_DIR = Path("data/cache")
 YEARS = list(range(2020, 2025))
-GRAPH_CONFIG = {"displayModeBar": False, "responsive": True}
+GRAPH_CONFIG = {"displayModeBar": False, "responsive": True, "scrollZoom": False}
 
 MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"]
 DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
@@ -93,33 +93,13 @@ def direct_download_url(resource_page_url):
     return payload["result"]["url"]
 
 
-def load_csv(resource_url, filename):
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    path = CACHE_DIR / filename
-
-    if path.exists():
-        return pd.read_csv(path, low_memory=False)
-
-    df = pd.read_csv(direct_download_url(resource_url), low_memory=False)
-    df.to_csv(path, index=False)
-    return df
+def load_csv(path):
+    return pd.read_csv(path, low_memory=False)
 
 
-def load_geojson():
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    path = CACHE_DIR / "limites-administratives-agglomeration.geojson"
-
-    if path.exists():
-        with path.open(encoding="utf-8") as file:
-            return json.load(file)
-
-    response = requests.get(LIMITES_GEOJSON_URL, timeout=45)
-    response.raise_for_status()
-
-    geojson = response.json()
-    with path.open("w", encoding="utf-8") as file:
-        json.dump(geojson, file)
-    return geojson
+def load_geojson(path):
+    with open(path, encoding="utf-8") as file:
+        return json.load(file)
 
 
 def zone_from_area(arrondissement, ville):
@@ -132,7 +112,7 @@ def zone_from_area(arrondissement, ville):
 
 
 def prepare_interventions():
-    raw = load_csv(INTERVENTIONS_RESOURCE, "interventions.csv")
+    raw = load_csv(INTERVENTIONS_FILE)
     raw = raw.rename(columns={c: normalize_key(c) for c in raw.columns})
 
     date_col = find_col(raw, ["CREATION_DATE_TIME", "DATE"])
@@ -182,7 +162,7 @@ def prepare_interventions():
 
 
 def prepare_casernes():
-    raw = load_csv(CASERNES_RESOURCE, "casernes.csv")
+    raw = load_csv(CASERNES_FILE)
     raw = raw.rename(columns={c: normalize_key(c) for c in raw.columns})
 
     station_col = find_col(raw, ["CASERNE"])
@@ -251,13 +231,22 @@ def build_zone_stats():
     )
 
     stats = totals.merge(pivot, on="zone", how="left").fillna(0)
-    caserne_counts = casernes.groupby("zone").size().reset_index(name="Nb_Casernes")
+   
+    try:
+        df_final = pd.read_csv('Data/stats_zones_final.csv')
+        df_extra = df_final[['ZONE', 'Population', 'Nb_Casernes']]
 
-    stats = stats.merge(caserne_counts, on="zone", how="left")
-    stats["Nb_Casernes"] = stats["Nb_Casernes"].fillna(0).astype(int)
-
-    stats["Population"] = np.nan
-    stats["Ratio"] = np.nan
+        stats = stats.merge(df_extra, left_on="zone", right_on="ZONE", how="left")
+        stats = stats.drop(columns=['ZONE']) 
+        stats["Nb_Casernes"] = stats["Nb_Casernes"].fillna(0).astype(int)
+        stats['Ratio'] = round(((stats['Incendies'] / 5) / stats['Population']) * 1000, 2)
+        
+    except Exception as e:
+        print(f"Erreur de chargement des données locales : {e}")
+        stats["Population"] = np.nan
+        stats["Ratio"] = np.nan
+        stats["Nb_Casernes"] = 0
+    
     return stats
 
 
@@ -388,7 +377,7 @@ def make_map(mode="Incendies"):
     fig.update_layout(
         mapbox_style="carto-positron",
         mapbox_zoom=9.65,
-        mapbox_center={"lat": 45.55, "lon": -73.72},
+        mapbox_center={"lat": 45.55, "lon": -73.73},
         mapbox_layers=[{
             "sourcetype": "geojson",
             "source": casernes_geojson,
@@ -596,7 +585,7 @@ def make_boxplot():
         df,
         x="nombre_unites",
         y="incident_type",
-        color="incident_type",
+        color_discrete_sequence=["#b7380d"],
         category_orders={"incident_type": order},
         title="Distribution des unités mobilisées par type d'incident",
         labels={"nombre_unites": "Nombre d'unités (intensité)", "incident_type": "Type d'incident"},
@@ -615,8 +604,8 @@ def make_waffle():
         rows=n_rows,
         cols=n_cols,
         subplot_titles=zones,
-        horizontal_spacing=0.045,
-        vertical_spacing=0.10,
+        horizontal_spacing=0.02,
+        vertical_spacing=0.04,
     )
 
     for category, color in zip(SEVERITY_ORDER, SEVERITY_COLORS):
@@ -667,8 +656,19 @@ def make_waffle():
         font=dict(family="Arial, sans-serif", size=11),
     )
     fig.update_annotations(font_size=10)
-    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False)
+    
+    for i in range(1, len(zones) + 1):
+        axis_name = f"x{i if i > 1 else ''}"
+        fig.update_yaxes(
+            scaleanchor=axis_name,
+            scaleratio=1,
+            row=(i - 1) // n_cols + 1,
+            col=(i - 1) % n_cols + 1
+        )
+
     fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False, autorange="reversed")
+    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False)
+
     return fig
 
 
@@ -701,7 +701,7 @@ app.title = "Interventions incendie à Montréal"
 try:
     interventions = prepare_interventions()
     casernes = prepare_casernes()
-    geojson_data = prepare_geojson(load_geojson())
+    geojson_data = prepare_geojson(load_geojson(LIMITES_GEOJSON_FILE))
 
     if interventions.empty:
         raise RuntimeError("Aucune intervention valide trouvée pour les années configurées.")
@@ -763,13 +763,12 @@ else:
                     id="map-mode",
                     options=[
                         {"label": " Nombre d'incidents (5 ans)", "value": "Incendies"},
-                        {"label": " Indice de risque annuel", "value": "Ratio", "disabled": True},
+                        {"label": " Indice de risque annuel", "value": "Ratio"},
                     ],
                     value="Incendies",
                     inline=True,
                     className="radio-centered",
                 ),
-                html.P("L'indice de risque annuel est désactivé ici car le fichier population utilisé dans le mockup n'est pas fourni dans le projet actuel.", className="note"),
             ], className="section-text centered"),
             html.Div([
                 graph_card(graph_id="map-montreal", figure=make_map(), height=610, class_name="map-card"),

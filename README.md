@@ -32,7 +32,8 @@ code blocks for commands
  (ali.karaki@etud.polymtl.ca)
 
  Paul Besse
- ()
+ (paul.besse@etud.polymtl.ca)
+
  Robin Holden
  (robin.holden@etud.polymtl.ca)
 
