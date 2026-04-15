@@ -266,9 +266,9 @@ def finish_figure(fig, height=520):
         template="plotly_white",
         height=height,
         margin=dict(l=70, r=35, t=70, b=70),
-        font=dict(family="Arial, sans-serif", size=12, color="#222"),
-        paper_bgcolor="white",
-        plot_bgcolor="white",
+        font=dict(family="Inter, sans-serif", size=12, color="#2c3e50"),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
         hoverlabel=dict(bgcolor="white", font_size=12),
     )
     fig.update_xaxes(showgrid=True, gridcolor="#eeeeee", zeroline=False, automargin=True)
@@ -695,6 +695,10 @@ def graph_card(graph_id=None, figure=None, height=540, class_name="chart-card"):
 
 
 app = Dash(__name__)
+external_stylesheets = [
+    "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+]
+app = Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
 app.title = "Interventions incendie à Montréal"
 
@@ -744,7 +748,7 @@ else:
                 stat_card("Type le plus fréquent", top_type),
                 stat_card("Casernes actives", format_int(len(casernes))),
             ], className="stats"),
-        ], className="hero"),
+        ], className="hero reveal"),
 
         html.Section([
             html.Div([
@@ -753,7 +757,7 @@ else:
                 html.P("Ce diagramme à barres empilées reprend le principe du mockup : les types principaux sont séparés et les autres interventions sont regroupées dans une catégorie Autres. La légende Plotly permet de masquer ou isoler un type."),
             ], className="section-text"),
             graph_card(figure=make_type_bar_by_zone(), height=600),
-        ], className="section"),
+        ], className="section reveal delay-1"),
 
         html.Section([
             html.Div([
@@ -774,7 +778,7 @@ else:
                 graph_card(graph_id="map-montreal", figure=make_map(), height=610, class_name="map-card"),
                 html.Div(id="side-panel", className="side-panel"),
             ], className="map-layout"),
-        ], className="section"),
+        ], className="section reveal delay-2"),
 
         html.Section([
             html.Div([
@@ -793,7 +797,7 @@ else:
                 ),
             ], className="section-text centered"),
             graph_card(graph_id="chrono-chart", figure=make_temporal("year"), height=540),
-        ], className="section"),
+        ], className="section reveal delay-3"),
 
         html.Section([
             html.Div([
@@ -803,12 +807,12 @@ else:
             ], className="section-text"),
             graph_card(figure=make_boxplot(), height=580),
             graph_card(figure=make_waffle(), height=waffle_height),
-        ], className="section"),
+        ], className="section reveal delay-4"),
 
         html.Footer([
             html.H2("À retenir"),
             html.P("Les feux extérieurs et les déchets en feu occupent une place importante dans les interventions. La pré-release permet déjà d'explorer les types dominants, les secteurs touchés, la saisonnalité et la mobilisation des unités."),
-        ], className="footer"),
+        ], className="footer reveal delay-4"),
     ])
 
 
