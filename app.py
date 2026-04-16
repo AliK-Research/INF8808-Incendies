@@ -305,6 +305,7 @@ def make_type_bar_by_zone():
         color_discrete_map=FIRE_COLORS,
     )
     fig.update_layout(
+        title_x=0.5,
         barmode="stack",
         legend_title_text="Types d'incidents",
         legend=dict(x=1.02, y=1, xanchor="left", yanchor="top"),
@@ -704,6 +705,7 @@ def make_boxplot():
 
     fig.update_layout(
         title="Distribution des unités mobilisées par type d'incident",
+        title_x=0.5,
         xaxis_title="Nombre d'unités (intensité)",
         yaxis_title="Type d'incident",
         showlegend=False,
@@ -774,6 +776,7 @@ def make_waffle():
 
     fig.update_layout(
         title_text="Gravité des interventions par arrondissement",
+        title_x=0.5,
         height=max(900, 220 * n_rows),
         margin=dict(t=100, b=40, l=40, r=210),
         legend=dict(title="Gravité", x=1.01, y=1),

@@ -52,14 +52,14 @@ body {
 .footer, .error-page { padding: 40px 50px; }
 
 h1, h2, h3, h4, p { margin-top: 0; }
-h1 { max-width: 920px; margin-bottom: 14px; font-size: clamp(38px, 5vw, 60px); line-height: 1.05; letter-spacing: -0.02em; font-weight: 700;}
+h1 { max-width: none; margin-bottom: 14px; font-size: clamp(38px, 5vw, 60px); line-height: 1.05; letter-spacing: -0.02em; font-weight: 700;}
 h2 { margin-bottom: 10px; font-size: clamp(25px, 3vw, 32px); line-height: 1.2; font-weight: 600; letter-spacing: -0.01em;}
 h3 { margin-bottom: 12px; font-size: 22px; font-weight: 600; }
 h4 { margin: 20px 0 8px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
 p { line-height: 1.6; }
 
 .eyebrow { margin-bottom: 10px; color: var(--accent); font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
-.lead { max-width: 760px; color: var(--muted); font-size: 20px; font-weight: 300; }
+.lead { max-width: none; color: var(--muted); font-size: 20px; font-weight: 300; }
 
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 35px; }
 
@@ -77,8 +77,8 @@ p { line-height: 1.6; }
 .stat-label { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
 .stat-value { margin-top: 8px; font-size: 28px; font-weight: 700; color: var(--text); }
 
-.section-text { max-width: 860px; margin-bottom: 30px; }
-.section-text.centered { max-width: none; text-align: center; }
+.section-text { max-width: none; margin-bottom: 30px; }
+.section-text.centered { max-width: none; text-align: left; }
 
 .chart-card, .map-card { width: 100%; padding: 15px; }
 .graph { width: 100%; }
