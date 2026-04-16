@@ -376,8 +376,8 @@ def make_map(mode="Incendies"):
 
     fig.update_layout(
         mapbox_style="carto-positron",
-        mapbox_zoom=9.65,
-        mapbox_center={"lat": 45.55, "lon": -73.73},
+        mapbox_zoom=9.60,
+        mapbox_center={"lat": 45.55, "lon": -73.735},
         mapbox_layers=[{
             "sourcetype": "geojson",
             "source": casernes_geojson,
@@ -869,6 +869,12 @@ else:
             html.P("INF8808 - Pré-release", className="eyebrow"),
             html.H1("Les interventions incendie à Montréal"),
             html.P("Évolution temporelle, répartition spatiale et couverture des casernes entre 2020 et 2024.", className="lead"),
+            html.P("Par Robin Holden, Ali Karaki et Paul Besse", style={"fontStyle": "italic", "fontSize": "14px", "marginBottom": "15px", "color": "var(--muted)"}),
+            html.P("Chaque jour, les pompiers du Service de sécurité incendie de Montréal (SIM) répondent à des centaines d’appels." \
+            " Mais que se passe-t-il réellement derrière les sirènes ? Cette exploration interactive propose d’analyser les données " \
+            "l’historique des interventions entre 2020 et 2024 pour comprendre les risques qui touchent l’agglomération de Montréal" \
+            ", l’évolution des interventions au fil des saisons et l’incroyable logistique nécessaire pour protéger plus de deux" \
+            " millions de citoyens."),
             html.Div([
                 stat_card("Interventions analysées", format_int(total_incidents)),
                 stat_card("Secteur le plus touché", top_zone),
@@ -879,17 +885,38 @@ else:
 
         html.Section([
             html.Div([
-                html.P("Visualisation 1", className="eyebrow"),
                 html.H2("Quels types d'incendies dominent selon les secteurs ?"),
-                html.P("Ce diagramme à barres empilées reprend le principe du mockup : les types principaux sont séparés et les autres interventions sont regroupées dans une catégorie Autres. La légende Plotly permet de masquer ou isoler un type."),
+                html.P("Chaque quartier de Montréal possède sa propre identité, allant des zones denses à d’autres plus verdoyantes"
+                ". Cela influence directement la nature des risques. Le diagramme à barres empilées suivant compare les types " \
+                "d’incendies les plus fréquents d’un secteur à l’autre. Les interventions les plus rares ont été regroupées dans la " \
+                "catégorie « Autres » pour faciliter la lecture.", style={"marginTop": "20px"}),
+                html.P([
+                    html.B("Comment ça marche : "),
+                    "Plus une barre est haute, plus il y a eu d’interventions. Les couleurs permettent de "
+                    "voir si un quartier fait face à plus de feux de bâtiments ou de feux extérieurs."
+                ]),
             ], className="section-text"),
             graph_card(figure=make_type_bar_by_zone(), height=600),
+            html.P("L’arrondissement Ville-Marie domine largement le bilan avec le nombre d’interventions le plus élevé de " \
+            "la métropole, suivi par les secteurs denses de Mercier-Hochelaga-Maisonneuve et du Plateau-Mont-Royal. Cela " \
+            "s'explique par son statut de centre-ville où la forte densité d'activités et de population multiplie par conséquent " \
+            "les risques d’incidents. Les déchets en feu sont la cause majoritaire des interventions dans presque tous les " \
+            "arrondissements. Par ailleurs, les secteurs verts comme Ahuntsic-Cartierville et Pierrefonds-Roxboro sont " \
+            "particulièrement touchés par les feux de champ.", style={"marginTop": "20px"}),
         ], className="section reveal delay-1"),
 
         html.Section([
             html.Div([
-                html.P("Visualisation 2", className="eyebrow"),
                 html.H2("Carte montrant la répartition des feux (2020-2024)"),
+                html.P("La sécurité est également une question de proximité. La carte ci-dessous montre l’emplacement des 64 casernes " \
+                "de l’île impliquées dans la lutte contre les incendies et le niveau d’activité " \
+                "de chaque zone.", style={"marginTop": "20px"}),
+                html.P([
+                    html.B("Comment ça marche : "),
+                    "Il est possible de basculer entre le nombre total d’incidents et l’indice de risque. Ce dernier ajuste "
+                    "les chiffres en fonction du nombre d’habitants, ce qui rend la comparaison équitable entre un petit "
+                    "quartier très peuplé et un grand arrondissement moins dense."
+                ]),
                 dcc.RadioItems(
                     id="map-mode",
                     options=[
@@ -905,12 +932,28 @@ else:
                 graph_card(graph_id="map-montreal", figure=make_map(), height=610, class_name="map-card"),
                 html.Div(id="side-panel", className="side-panel"),
             ], className="map-layout"),
+            html.P("La répartition géographique montre une grande concentration des interventions dans les environs " \
+            "du centre-ville, comme vu précédemment avec Ville-Marie. Cependant, l'indice de risque annuel apporte " \
+            "une information supplémentaire importante. En effet, une fois les données rapportées à la population, des " \
+            "arrondissements moins denses comme Montréal-Est et Senneville révèlent une vulnérabilité importante. Cela " \
+            "confirme que le risque incendie est à la fois lié à la densité humaine et aux environnements verts, davantage " \
+            "sujets aux feux de végétation. La répartition des casernes assure ainsi une présence stratégique pour intervenir " \
+            "rapidement sur l'ensemble du territoire.", style={"marginTop": "20px"}),
         ], className="section reveal delay-2"),
 
         html.Section([
             html.Div([
-                html.P("Visualisation 3", className="eyebrow"),
                 html.H2("Évolution et cycles d'intervention"),
+                html.P("Le risque incendie n’est pas statique, il suit le rythme de la ville et des saisons. Cette visualisation " \
+                "permet de retracer l’historique des interventions par année, par mois ou même par semaine et " \
+                "par jour.", style={"marginTop": "20px"}),
+                html.P([
+                    html.B("Comment ça marche : "),
+                    "Les boutons permettent de choisir l’échelle temporelle souhaitée. Les vues « Annuelle » et « Mensuelle » "
+                    "présentent des graphiques à barres empilées montrant le volume total d'incidents et leur nature. La vue "
+                    "« Hebdomadaire » utilise une carte de chaleur : plus la case est foncée, plus le nombre d'interventions "
+                    "est élevé pour cette plage horaire précise."
+                ]),
                 dcc.RadioItems(
                     id="time-selector",
                     options=[
@@ -924,22 +967,72 @@ else:
                 ),
             ], className="section-text centered"),
             graph_card(graph_id="chrono-chart", figure=make_temporal("year"), height=540),
+            html.P("L'évolution temporelle montre une bonne stabilité du volume global d'interventions sur les cinq dernières " \
+            "années, malgré un pic notable en 2020 lié à un été rude. Cependant, l'analyse à une maille plus fine révèle une " \
+            "dynamique saisonnière et quotidienne très marquée. Le nombre d'incidents double presque lors du passage de l'hiver " \
+            "à l'été, principalement à cause de la chaleur et de la sécheresse favorisant les feux extérieurs. Cela confirme " \
+            "que le rythme des incidents est étroitement lié à la période de l’année et aux cycles d'activité humaine, qui " \
+            "est plus élevée entre 13h et 22h. Cette connaissance de la temporalité permet ainsi au SIM d’accroître sa vigilance " \
+            "en fonction des périodes de vulnérabilité accrue.", style={"marginTop": "20px"}),
         ], className="section reveal delay-3"),
 
         html.Section([
             html.Div([
-                html.P("Visualisation 4", className="eyebrow"),
                 html.H2("Combien d'unités sont mobilisées par type d'incident et par arrondissement ?"),
-                html.P("Le boxplot montre la distribution des unités mobilisées par type d'incident. Le waffle chart reprend ensuite les small multiples du mockup pour comparer la gravité des interventions par arrondissement."),
+                html.P("Toutes les interventions ne se ressemblent pas. En effet, l’effort déployé change radicalement selon " \
+                "que les pompiers font face à une poubelle en feu ou un incendie de bâtiment par exemple. Le diagramme en boîtes " \
+                "montre le nombre habituel d’unités déployées pour chaque type d’appel. Le graphique en gaufrier situé en " \
+                "dessous représente la répartition du nombre d’unités déployées par quartier.", style={"marginTop": "20px"}),
+                html.P([
+                    html.B("Comment ça marche : "),
+                    "Pour le diagramme en boîtes, chaque ligne verticale dans une boîte représente la mobilisation médiane. "
+                    "Plus la boîte est étirée vers la droite, plus les besoins en ressources varient pour ce type d'appel. "
+                    "Les points isolés à droite indiquent des interventions d'une ampleur exceptionnelle. Pour le graphique "
+                    "en gaufrier, chaque petit carré représente 1% des interventions du secteur. Plus il y a de carrés "
+                    "foncés, plus les interventions de grande ampleur ont été fréquentes."
+                ]),
             ], className="section-text"),
             graph_card(figure=make_boxplot(), height=580),
             graph_card(figure=make_waffle(), height=waffle_height),
+            html.P("L'analyse de la mobilisation montre que la vaste majorité des incidents quotidiens, tels que les feux de " \
+            "déchets ou de broussailles, sont maîtrisés avec seulement une à deux unités. Cependant, dès que l'on passe aux " \
+            "alertes de niveau supérieur comme les incendies de bâtiments confirmés, l'effort augmente pour atteindre souvent " \
+            "plus de 15, voire 60 unités pour les cas les plus critiques.", style={"marginTop": "20px"}),
+            html.P("Le portrait par quartier montre que les interventions de routine, « Mineure » ou « Standard », constituent " \
+            "la plus grande partie de l'activité partout sur l'île. On note toutefois que des secteurs denses ou " \
+            "institutionnels, comme Ville-Marie ou Westmount, affichent une proportion de carrés foncés légèrement plus " \
+            "élevée, exigeant une mobilisation massive d'unités spécialisées.", style={"marginTop": "10px"}),
         ], className="section reveal delay-4"),
 
         html.Footer([
-            html.H2("À retenir"),
-            html.P("Les feux extérieurs et les déchets en feu occupent une place importante dans les interventions. La pré-release permet déjà d'explorer les types dominants, les secteurs touchés, la saisonnalité et la mobilisation des unités."),
-        ], className="footer reveal delay-4"),
+            html.Div([
+                html.H2("Protéger, prévenir, progresser"),
+                html.P([
+                    "Les visualisations proposées illustrent bien que la sécurité incendie à Montréal est un défi d’équilibre. "
+                    "Entre la prévention des petits incidents quotidiens et la préparation aux accidents majeurs, le SIM adapte "
+                    "ses ressources à la réalité de chaque quartier. Ces cinq années reflètent sa capacité à veiller sur une "
+                    "métropole en constante mutation, peu importe l’heure, le quartier ou la saison."
+                ], style={"marginTop": "20px", "lineHeight": "1.6"}),
+            ], className="section reveal", style={"marginBottom": "25px"}),
+
+            html.Div([
+                html.P(html.B("En lien avec le sujet"), style={"marginTop": "10px", "marginBottom": "10px"}),
+                html.Ul([
+                    html.Li(html.A(
+                        "L'incendie de l'église Saint-Paul emporte en fumée une page d'histoire",
+                        href="https://www.journaldemontreal.com/2026/02/23/lincendie-de-leglise-saint-paul-apporte-en-fumee-une-page-dhistoire",
+                        target="_blank",
+                        style={"color": "var(--accent)", "textDecoration": "none"}
+                    )),
+                    html.Li(html.A(
+                        "Un incendie sur le boulevard Saint-Laurent",
+                        href="https://www.lapresse.ca/actualites/justice-et-faits-divers/2026-04-06/montreal/un-incendie-sur-le-boulevard-saint-laurent.php",
+                        target="_blank",
+                        style={"color": "var(--accent)", "textDecoration": "none"}
+                    )),
+                ], style={"listStyleType": "none", "padding": 0, "lineHeight": "1.8"})
+            ], className="section reveal delay-4")
+        ], style={"backgroundColor": "transparent", "padding": "0"})
     ])
 
 
