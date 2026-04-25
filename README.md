@@ -41,6 +41,7 @@ code blocks for commands
 
 * 0.1
     * Beta (15 Avril 2026)
+    * Final release (25 Avril 2026)
 
 
 ## Sources
