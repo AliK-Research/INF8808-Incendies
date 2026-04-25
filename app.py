@@ -1,23 +1,27 @@
+# IMPORTS ET DÉPENDANCES
 import pandas as pd
 from dash import Dash, Input, Output, dcc, html, MATCH
 
-# Outils globaux
+# Fonctions utilitaires partagées
 from utils import load_all_data, format_int, stat_card, GRAPH_CONFIG
 
-# Import des 4 modules de visualisation
+# Modules de visualisation spécifiques au projet
 from visualizations.neighborhood_analysis import comparison_section
 from visualizations.risk_map import map_section_layout, make_map, selected_zone, make_detail_bar
 from visualizations.temporal_trends import temporal_section, make_temporal
 from visualizations.response_intensity import distribution_section
 
-# Initialisation des données
+# CHARGEMENT DES DONNÉES GLOBALES
 interventions, casernes, zone_stats, geojson_data, data_error = load_all_data()
 
+# INITIALISATION DE L'APPLICATION
 app = Dash(__name__, external_stylesheets=["https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"])
 server = app.server
 app.title = "Interventions incendie à Montréal"
 
+# VÉRIFICATION DE L'INTÉGRITÉ DES DONNÉES
 if data_error:
+    # Affichage d'une page d'erreur de secours si les fichiers CSV/JSON sont manquants
     app.layout = html.Div([
         html.H1("Erreur de chargement des données"),
         html.P(data_error),
@@ -25,13 +29,15 @@ if data_error:
     ], className="error-page")
 
 else:
-    # Variables d'en-tête
+    # PRÉPARATION DES CHIFFRES CLÉS
     total_incidents = len(interventions)
     top_zone = zone_stats.sort_values("Incendies", ascending=False).iloc[0]["zone"]
     top_type = interventions["incident_type"].value_counts().index[0]
 
+    # STRUCTURE PRINCIPALE DU DASHBOARD (LAYOUT)
     app.layout = html.Div([
-        # --- HEADER ---
+        
+        # EN-TÊTE ET TEXTE INTRODUCTIF
         html.Header([
             html.P("INF8808 - FINAL RELEASE", className="eyebrow"),
             html.H1("Les interventions incendie à Montréal"),
@@ -42,6 +48,8 @@ else:
             "l’historique des interventions entre 2020 et 2024 pour comprendre les risques qui touchent l’agglomération de Montréal"
             ", l’évolution des interventions au fil des saisons et l’incroyable logistique nécessaire pour protéger plus de deux"
             " millions de citoyens."),
+            
+            # Grille des statistiques globales
             html.Div([
                 stat_card("Interventions analysées", format_int(total_incidents)),
                 stat_card("Secteur le plus touché", top_zone),
@@ -50,13 +58,13 @@ else:
             ], className="stats"),
         ], className="hero reveal"),
 
-        # --- SECTIONS GRAPHIQUES ---
+        # SECTIONS GRAPHIQUES ET ANALYSES
         comparison_section(interventions),
         map_section_layout(zone_stats, casernes, geojson_data),
         temporal_section(interventions),
         distribution_section(interventions),
 
-        # --- FOOTER ---
+        # PIED DE PAGE ET CONCLUSION
         html.Footer([
             html.Div([
                 html.H2("Protéger, prévenir, progresser"),
@@ -68,6 +76,7 @@ else:
                 ], style={"marginTop": "20px", "lineHeight": "1.6"}),
             ], className="section reveal", style={"marginBottom": "25px"}),
 
+            # Liens externes et articles connexes
             html.Div([
                 html.P(html.B("En lien avec le sujet"), style={"marginTop": "10px", "marginBottom": "10px"}),
                 html.Ul([
@@ -89,15 +98,14 @@ else:
     ])
 
 
-    # =====================================================================
-    # CALLBACKS
-    # =====================================================================
+    # LOGIQUE INTERACTIVE (CALLBACKS)
 
+    # Mise à jour de la carte principale selon le mode sélectionné (Volume vs Indice)
     @app.callback(Output("map-montreal", "figure"), Input("map-mode", "value"))
     def update_map(mode):
         return make_map(zone_stats, casernes, geojson_data, mode)
 
-
+    # Actualisation du panneau latéral textuel lors du clic sur un arrondissement
     @app.callback(Output("side-panel", "children"), Input("map-montreal", "clickData"))
     def update_side_panel(click_data):
         zone = selected_zone(zone_stats, click_data)
@@ -117,20 +125,21 @@ else:
             dcc.Graph(figure=make_detail_bar(zone_stats, zone), config=GRAPH_CONFIG, style={"height": "305px"}),
         ]
 
-
+    # Changement d'échelle temporelle (Année, Mois, Semaine)
     @app.callback(Output("chrono-chart", "figure"), Input("time-selector", "value"))
     def update_chrono(scale):
         return make_temporal(interventions, scale)
     
+    # Gestion du menu déroulant pour les descriptions d'accessibilité
     @app.callback(Output({"type": "toggle-text", "section": MATCH}, "style"),
                   Output({"type": "toggle-button", "section": MATCH}, "children"),
                   Input({"type": "toggle-button", "section": MATCH}, "n_clicks")
     )
-    
     def toggle_details(n_clicks):
         if n_clicks % 2 == 1:
             return {"display": "block"}, " Cacher la description de la visualisation"
         return {"display": "none"}, " Afficher la description de la visualisation"
 
+# LANCEMENT DU SERVEUR
 if __name__ == "__main__":
     app.run(debug=False)

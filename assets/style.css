@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 
+/* VARIABLES GLOBALES */
 :root {
     --bg: #f4f7f9;
     --page: #ffffff;
@@ -13,6 +14,7 @@
     --radius: 16px;
 }
 
+/* BASES ET RESET */
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 
@@ -23,6 +25,8 @@ body {
     font-family: 'Inter', sans-serif;
 }
 
+/* ANIMATIONS */
+/* Apparition fluide au chargement de la page */
 @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(40px); }
     to { opacity: 1; transform: translateY(0); }
@@ -33,11 +37,14 @@ body {
     opacity: 0;
 }
 
+/* Délais en cascade pour les différentes sections */
 .delay-1 { animation-delay: 0.2s; }
 .delay-2 { animation-delay: 0.4s; }
 .delay-3 { animation-delay: 0.6s; }
 .delay-4 { animation-delay: 0.8s; }
 
+/* STRUCTURE DE PAGE */
+/* Layout principal et conteneurs */
 .hero, .section, .footer, .error-page {
     width: min(1180px, calc(100% - 40px));
     margin: 0 auto 40px;
@@ -51,6 +58,7 @@ body {
 .section { padding: 40px 50px 50px; }
 .footer, .error-page { padding: 40px 50px; }
 
+/* TYPOGRAPHIE */
 h1, h2, h3, h4, p { margin-top: 0; }
 h1 { max-width: none; margin-bottom: 14px; font-size: clamp(38px, 5vw, 60px); line-height: 1.05; letter-spacing: -0.02em; font-weight: 700;}
 h2 { margin-bottom: 10px; font-size: clamp(25px, 3vw, 32px); line-height: 1.2; font-weight: 600; letter-spacing: -0.01em;}
@@ -58,11 +66,18 @@ h3 { margin-bottom: 12px; font-size: 22px; font-weight: 600; }
 h4 { margin: 20px 0 8px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
 p { line-height: 1.6; }
 
+/* Petits textes descriptifs et sous-titres */
 .eyebrow { margin-bottom: 10px; color: var(--accent); font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 .lead { max-width: none; color: var(--muted); font-size: 20px; font-weight: 300; }
 
+.section-text { max-width: none; margin-bottom: 30px; }
+.section-text.centered { max-width: none; text-align: left; }
+
+/* COMPOSANTS UI */
+/* Grille des 4 chiffres clés en haut */
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 35px; }
 
+/* Cadres blancs pour graphiques et données */
 .stat-card, .chart-card, .map-card, .side-panel {
     border: none;
     border-radius: calc(var(--radius) / 2);
@@ -71,21 +86,21 @@ p { line-height: 1.6; }
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
+/* Effets spécifiques aux petites cartes de stats */
 .stat-card { padding: 20px 24px; border: 1px solid #f0f0f0; }
 .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.05); }
 
 .stat-label { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
 .stat-value { margin-top: 8px; font-size: 28px; font-weight: 700; color: var(--text); }
 
-.section-text { max-width: none; margin-bottom: 30px; }
-.section-text.centered { max-width: none; text-align: left; }
-
 .chart-card, .map-card { width: 100%; padding: 15px; }
 .graph { width: 100%; }
 
+/* Filtres Dash (Radio et Checklists) */
 .radio-centered { display: flex; justify-content: center; gap: 20px; margin: 15px 0 10px; }
 .radio-centered label { cursor: pointer; font-size: 15px; font-weight: 600; color: var(--accent); }
 
+/* LAYOUT SPÉCIFIQUE : CARTE ET PANNEAU LATÉRAL */
 .map-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(340px, 0.85fr); gap: 30px; align-items: stretch; }
 
 .side-panel { min-height: 610px; padding: 30px; background: #f8fcfd; overflow: hidden; border: 1px solid #e1e8ed; }
@@ -95,8 +110,11 @@ p { line-height: 1.6; }
 
 .footer p { max-width: 900px; color: var(--muted); }
 
+/* NETTOYAGE UI */
+/* Masque les éléments natifs indésirables de Dash et Mapbox pour un rendu propre */
 ._dash-undo-redo, .dash-debug-menu, .mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib { display: none !important; }
 
+/* RESPONSIVITÉ (MOBILE ET TABLETTE) */
 @media (max-width: 980px) {
     .stats, .map-layout { grid-template-columns: 1fr; }
     .hero, .section, .footer, .error-page { width: min(100% - 24px, 1180px); padding: 30px; }

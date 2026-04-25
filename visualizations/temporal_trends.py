@@ -1,10 +1,14 @@
+# IMPORTS ET DÉPENDANCES
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from dash import dcc, html
 from utils import finish_figure, RED_STEPS, FIRE_COLORS, ordered_type_groups, DAYS, MONTHS, YEARS, graph_card, button_description
 
+# CRÉATION DES GRAPHIQUES TEMPORELS MULTI-ÉCHELLES
 def make_temporal(interventions, scale):
+    
+    # Logique pour la vue hebdomadaire (heatmap)
     if scale == "week":
         heat = interventions.groupby(["day_label", "hour"]).size().reset_index(name="Valeur")
         pivot = heat.pivot(index="day_label", columns="hour", values="Valeur").reindex(DAYS).reindex(columns=range(24)).fillna(0)
@@ -14,7 +18,6 @@ def make_temporal(interventions, scale):
         fig = go.Figure(go.Heatmap(
             z=pivot.values, x=[f"{h}h" for h in pivot.columns], y=pivot.index,
             colorscale=RED_STEPS, zmin=0, zmax=vmax, xgap=3, ygap=3,
-            # Affichage texte retiré pour éviter la surcharge
             colorbar=dict(
                 title=dict(text="Nombre d'incidents", side="top"),
                 tickmode="array", tickvals=bins, ticktext=[str(int(b)) for b in bins],
@@ -22,6 +25,8 @@ def make_temporal(interventions, scale):
             ),
             hovertemplate="Jour: %{y}<br>Heure: %{x}<br>Interventions: %{z}<extra></extra>",
         ))
+        
+        # Ajustement des axes pour la heatmap
         fig.update_layout(
             title={"text": "Analyse des périodes critiques sur la semaine", "x": 0.5},
             xaxis=dict(title="Heure de la journée", showline=True, linecolor="black", ticks="outside"),
@@ -30,6 +35,7 @@ def make_temporal(interventions, scale):
         )
         return finish_figure(fig, 540)
 
+    # Logique de groupement pour les vues annuelle et mensuelle
     if scale == "year":
         df = interventions.groupby(["year", "type_grouped"]).size().reset_index(name="Valeur")
         title, x_title, order = "Répartition annuelle par type d'incident", "Année", sorted(interventions["year"].unique())
@@ -39,6 +45,7 @@ def make_temporal(interventions, scale):
         df = df.rename(columns={"month_label": "year"})
         title, x_title, order = "Saisonnalité des types d'incidents (Moyenne)", "Mois", MONTHS
 
+    # Construction du graphique à barres empilées
     fig = go.Figure()
     for category in ordered_type_groups(interventions):
         sub = df[df["type_grouped"] == category].copy()
@@ -49,10 +56,10 @@ def make_temporal(interventions, scale):
         fig.add_trace(go.Bar(
             name=category, x=sub["year"], y=sub["Valeur"],
             marker_color=FIRE_COLORS.get(category),
-            # Affichage du texte intérieur retiré
             hovertemplate="%{x}<br>%{data.name}: %{y}<extra></extra>",
         ))
 
+    # Calcul et affichage du texte global au sommet de chaque barre
     totals = df.groupby("year", observed=False)["Valeur"].sum().reindex(order).dropna().reset_index()
     fig.add_trace(go.Scatter(
         x=totals["year"], y=totals["Valeur"], 
@@ -64,6 +71,7 @@ def make_temporal(interventions, scale):
         showlegend=False
     ))
 
+    # Mise en page finale (légendes et axes)
     fig.update_layout(
         barmode="stack", title={"text": title, "x": 0.5},
         legend_title="Type d'incident", legend=dict(x=1.02, y=1, xanchor="left", yanchor="top"),
@@ -73,8 +81,10 @@ def make_temporal(interventions, scale):
     )
     return finish_figure(fig, 540)
 
+# STRUCTURE DE LA SECTION HTML
 def temporal_section(interventions):
     return html.Section([
+        # En-tête et texte explicatif
         html.Div([
             html.H2("Évolution et cycles d'intervention"),
             html.P("Le risque incendie n’est pas statique, il suit le rythme de la ville et des saisons. Cette visualisation "
@@ -87,6 +97,8 @@ def temporal_section(interventions):
                 "« Hebdomadaire » utilise une carte de chaleur : plus la case est foncée, plus le nombre d'interventions est "
                 "élevé pour cette plage horaire précise."
             ]),
+            
+            # Boutons radio pour alterner les modes temporels
             dcc.RadioItems(
                 id="time-selector",
                 options=[
@@ -100,8 +112,10 @@ def temporal_section(interventions):
             ),
         ], className="section-text centered"),
         
+        # Intégration du graphique principal (actualisé via callbacks)
         graph_card(graph_id="chrono-chart", figure=make_temporal(interventions, "year"), height=540),
         
+        # Bouton d'accessibilité décrivant la visualisation
         button_description(button_id="viz3",
                            description=[
                             html.Br(),"Cette visualisation interactive multi-vues, intitulée « Évolution et cycles d'intervention », permet d'alterner "
@@ -123,6 +137,7 @@ def temporal_section(interventions):
                             html.Hr(style={"marginTop": "20px", "marginBottom": "20px", "borderTop": "1px solid #ccc"}),
                             ]),
 
+        # Paragraphe d'analyse
         html.P("L'évolution temporelle montre une bonne stabilité du volume global d'interventions sur les cinq dernières "
         "années, malgré un pic notable en 2020 lié à un été rude. Cependant, l'analyse à une maille plus fine révèle une "
         "dynamique saisonnière et quotidienne très marquée. Le nombre d'incidents double presque lors du passage de l'hiver "

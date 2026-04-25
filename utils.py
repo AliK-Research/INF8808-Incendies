@@ -1,3 +1,4 @@
+# IMPORTS ET DÉPENDANCES
 import json
 import re
 import unicodedata
@@ -6,19 +7,22 @@ import pandas as pd
 import plotly.graph_objects as go
 from dash import dcc, html
 
-# --- CHEMINS DES FICHIERS ---
+# CHEMINS DES FICHIERS DE DONNÉES
 INTERVENTIONS_FILE = "cleaned_data/cleaned_interventions.csv"
 CASERNES_FILE = "cleaned_data/cleaned_casernes.csv"
 ZONE_STATS_FILE = "cleaned_data/merged_zone_stats.csv"
 LIMITES_GEOJSON_FILE = "data/limites-administratives-agglomeration.geojson"
 
-# --- CONSTANTES GLOBALES ---
+# CONSTANTES GLOBALES
 YEARS = list(range(2020, 2025))
+
+# Désactive la barre d'outils Plotly et empêche le zoom au scroll pour une UI plus propre
 GRAPH_CONFIG = {"displayModeBar": False, "responsive": True, "scrollZoom": False}
 
 MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"]
 DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
 
+# Ordre d'affichage pour l'échelle de gravité
 SEVERITY_ORDER = [
     "Mineure <= 1 unité",
     "Standard <= 5 unités",
@@ -27,7 +31,7 @@ SEVERITY_ORDER = [
     "Critique > 30 unités",
 ]
 
-# --- COULEURS ---
+# PALETTES DE COULEURS ET STYLES VISUELS
 SEVERITY_COLORS = ["#ffcaca", "#ff7070", "#ff0000", "#990000", "#330000"]
 
 FIRE_COLORS = {
@@ -39,7 +43,7 @@ FIRE_COLORS = {
     "Autres": "#c7c7c7",
 }
 
-
+# Dégradé pour la carte de chaleur
 RED_STEPS = [
     [0.0, "#fee5d9"], [0.2, "#fee5d9"],
     [0.2, "#fcae91"], [0.4, "#fcae91"],
@@ -59,9 +63,11 @@ DESC_BUTTON_STYLE = style={
     "fontWeight": "600",
     "cursor": "pointer",
 }
-
     
-# --- FONCTIONS DE CHARGEMENT ---
+# FONCTIONS DE TRAITEMENT ET DE CHARGEMENT DES DONNÉES
+
+# Standardise les noms de secteurs (enlève les accents, les tirets et les articles) 
+# pour garantir que les fichiers CSV correspondent parfaitement aux noms dans le GeoJSON
 def normalize_key(value):
     value = "" if pd.isna(value) else str(value)
     value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii").upper()
@@ -73,6 +79,7 @@ def load_geojson(path):
     with open(path, encoding="utf-8") as file:
         return json.load(file)
 
+# Prépare les clés de liaison pour l'affichage de la carte
 def prepare_geojson(geojson):
     for feature in geojson.get("features", []):
         props = feature.setdefault("properties", {})
@@ -83,6 +90,7 @@ def prepare_geojson(geojson):
         props["NOM_AFFICHAGE"] = name
     return geojson
 
+# Fonction centrale qui charge tous les fichiers et applique les conversions de types nécessaires (dates, catégories)
 def load_all_data():
     try:
         # Interventions
@@ -108,19 +116,25 @@ def load_all_data():
     except Exception as exc:
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), None, str(exc)
 
-# --- FONCTIONS D'AIDE ET DE MISE EN FORME ---
+
+# FONCTIONS DE MISE EN FORME
+
+# Ajoute des espaces pour faciliter la lecture des grands nombres
 def format_int(value):
     if pd.isna(value):
         return "Non disponible"
     return f"{int(value):,}".replace(",", " ")
 
+# Isole dynamiquement les colonnes qui représentent des types d'incidents
 def top_type_columns(zone_stats_df):
     excluded = {"zone", "Incendies", "Nb_Casernes", "Population", "Ratio", "join_key", "geo_name"}
     return [c for c in zone_stats_df.columns if c not in excluded]
 
+# Trie les groupes d'incidents en s'assurant que la catégorie "Autres" apparaît toujours en dernier
 def ordered_type_groups(interventions_df):
     return [c for c in interventions_df["type_grouped"].value_counts().index if c != "Autres"] + ["Autres"]
 
+# Applique un thème visuel uniforme (marges, couleurs, polices) à tous les graphiques de l'application
 def finish_figure(fig, height=520):
     fig.update_layout(
         template="plotly_white",
@@ -135,18 +149,23 @@ def finish_figure(fig, height=520):
     fig.update_yaxes(showgrid=False, zeroline=False, automargin=True)
     return fig
 
+# Génère un canevas vide avec un message d'erreur si des données sont manquantes pour un graphique
 def empty_figure(message, height=420):
     fig = go.Figure()
     fig.add_annotation(text=message, x=0.5, y=0.5, showarrow=False)
     return finish_figure(fig, height)
 
-# --- COMPOSANTS DASH REUTILISABLES ---
+
+# COMPOSANTS DASH
+
+# Crée les petits blocs de statistiques affichés en haut de la page
 def stat_card(label, value):
     return html.Div([
         html.Div(label, className="stat-label"),
         html.Div(value, className="stat-value"),
     ], className="stat-card")
 
+# Enveloppe un graphique Plotly dans une div HTML avec des paramètres de style standardisés
 def graph_card(graph_id=None, figure=None, height=540, class_name="chart-card"):
     props = {
         "config": GRAPH_CONFIG,
@@ -159,7 +178,7 @@ def graph_card(graph_id=None, figure=None, height=540, class_name="chart-card"):
         props["figure"] = figure
     return html.Div(dcc.Graph(**props), className=class_name)
 
-# --- Boutton générique pour afficher les descriptions ---
+# Génère le bouton utilisé pour afficher/masquer les descriptions de chaque visualisation
 def button_description(button_id, description):
     return html.Div([
         html.Button(

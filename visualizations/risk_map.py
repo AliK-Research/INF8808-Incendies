@@ -1,3 +1,4 @@
+# IMPORTS ET DÉPENDANCES
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -5,13 +6,16 @@ import plotly.express as px
 from dash import dcc, html
 from utils import empty_figure, RED_STEPS, graph_card, top_type_columns, button_description
 
+# CRÉATION DE LA CARTE CHOROPLÈTHE
 def make_map(zone_stats, casernes, geojson_data, mode="Incendies"):
     if geojson_data is None:
         return empty_figure("Carte indisponible", 610)
 
+    # Détermination de la colonne à afficher selon le bouton sélectionné
     df_map = zone_stats.copy()
     value_col = "Incendies" if mode == "Ratio" and df_map["Ratio"].isna().all() else mode
 
+    # Calcul des limites de l'échelle de couleurs
     raw_max = df_map[value_col].max()
     raw_max = 1 if pd.isna(raw_max) or raw_max <= 0 else raw_max
     v_max = int(np.ceil(raw_max / 100) * 100) if value_col == "Incendies" else float(np.ceil(raw_max))
@@ -19,6 +23,8 @@ def make_map(zone_stats, casernes, geojson_data, mode="Incendies"):
     labels = [str(int(v)) for v in bins] if value_col == "Incendies" else [f"{v:.1f}" for v in bins]
 
     fig = go.Figure()
+    
+    # Ajout de la couche des polygones (quartiers colorés)
     fig.add_trace(go.Choroplethmapbox(
         geojson=geojson_data,
         locations=df_map["join_key"],
@@ -40,6 +46,7 @@ def make_map(zone_stats, casernes, geojson_data, mode="Incendies"):
         name="Nombre d'incidents",
     ))
 
+    # Préparation et ajout des points noirs pour représenter les casernes
     casernes_geojson = {
         "type": "FeatureCollection",
         "features": [
@@ -54,6 +61,7 @@ def make_map(zone_stats, casernes, geojson_data, mode="Incendies"):
         name="Casernes", hoverinfo="skip",
     ))
 
+    # Configuration du fond de carte mapbox et du centrage
     fig.update_layout(
         mapbox_style="carto-positron",
         mapbox_zoom=9.60,
@@ -71,7 +79,9 @@ def make_map(zone_stats, casernes, geojson_data, mode="Incendies"):
     )
     return fig
 
+# GESTION DES CLICS SUR LA CARTE
 def selected_zone(zone_stats, click_data):
+    # Identifie le quartier cliqué pour actualiser le panneau latéral
     if click_data and click_data.get("points"):
         point = click_data["points"][0]
         if point.get("customdata") is not None:
@@ -81,16 +91,20 @@ def selected_zone(zone_stats, click_data):
             if not row.empty:
                 return row.iloc[0]["zone"]
 
+    # Valeur par défaut si aucun clic ou zone invalide
     if "Ville-Marie" in set(zone_stats["zone"]):
         return "Ville-Marie"
     return zone_stats.sort_values("Incendies", ascending=False).iloc[0]["zone"]
 
+# CRÉATION DU GRAPHIQUE LATÉRAL
 def make_detail_bar(zone_stats, zone):
     row = zone_stats[zone_stats["zone"] == zone]
     if row.empty:
         return empty_figure("Aucune donnée pour ce secteur.", 300)
 
+    # Extraction des colonnes correspondantes aux types d'incidents
     values = pd.Series({col: row.iloc[0][col] for col in top_type_columns(zone_stats)}).sort_values()
+    
     fig = px.bar(
         x=values.values, y=values.index, orientation="h",
         text=values.values.astype(int), labels={"x": "", "y": ""},
@@ -110,8 +124,10 @@ def make_detail_bar(zone_stats, zone):
     fig.update_yaxes(automargin=True)
     return fig
 
+# STRUCTURE DE LA SECTION HTML
 def map_section_layout(zone_stats, casernes, geojson_data):
     return html.Section([
+        # En-tête et texte explicatif
         html.Div([
             html.H2("Géographie des interventions et maillage des services de secours"),
             html.P("La sécurité est également une question de proximité. La carte ci-dessous montre l’emplacement des 64 casernes "
@@ -126,6 +142,7 @@ def map_section_layout(zone_stats, casernes, geojson_data):
 
             html.P("Carte montrant la répartition des feux (2020-2024)", style={"text-align": "center", "marginTop": "40px", "marginBottom": "10px"}),
 
+            # Boutons radio pour alterner les modes de la carte
             dcc.RadioItems(
                 id="map-mode",
                 options=[
@@ -138,11 +155,13 @@ def map_section_layout(zone_stats, casernes, geojson_data):
             ),
         ], className="section-text centered"),
         
+        # Grille asymétrique contenant la carte et le panneau de détails
         html.Div([
             graph_card(graph_id="map-montreal", figure=make_map(zone_stats, casernes, geojson_data), height=610, class_name="map-card"),
             html.Div(id="side-panel", className="side-panel"),
         ], className="map-layout"),
         
+        # Bouton d'accessibilité décrivant la visualisation
         button_description(button_id="viz2",
                            description=[
                                 html.Br(), 
@@ -158,7 +177,7 @@ def map_section_layout(zone_stats, casernes, geojson_data):
                                 html.Hr(style={"marginTop": "20px", "marginBottom": "20px", "borderTop": "1px solid #ccc"}),
                             ]),
 
-                
+        # Paragraphe d'analyse
         html.P("La répartition géographique montre une grande concentration des interventions dans les environs "
         "du centre-ville, comme vu précédemment avec Ville-Marie. Cependant, l'indice de risque annuel apporte "
         "une information supplémentaire importante. En effet, une fois les données rapportées à la population, des "

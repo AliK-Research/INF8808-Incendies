@@ -1,17 +1,22 @@
+# IMPORTS ET DÉPENDANCES
 import plotly.graph_objects as go
 import numpy as np
 import plotly.express as px
 from dash import html
 from utils import finish_figure, FIRE_COLORS, graph_card, button_description
 
+# CRÉATION DU GRAPHIQUE À BARRES EMPILÉES
 def make_type_bar_by_zone(interventions):
+    # Filtrage et identification des 5 types d'incidents majeurs
     df = interventions[interventions["zone"] != "Indéterminé"].copy()
     top5 = df["incident_type"].value_counts().head(5).index.tolist()
     df["Type"] = np.where(df["incident_type"].isin(top5), df["incident_type"], "Autres")
 
+    # Regroupement des données par arrondissement et par type
     zones = df.groupby("zone").size().sort_values(ascending=False).head(22).index.tolist()
     grouped = df[df["zone"].isin(zones)].groupby(["zone", "Type"]).size().reset_index(name="Nombre")
 
+    # Initialisation du graphique de base
     fig = px.bar(
         grouped,
         x="zone",
@@ -23,19 +28,21 @@ def make_type_bar_by_zone(interventions):
         color_discrete_map=FIRE_COLORS,
     )
 
+    # Calcul et ajout du texte affichant le total au sommet de chaque barre
     if not grouped.empty:
         totals = grouped.groupby("zone")["Nombre"].sum().reindex(zones).fillna(0)
         fig.add_trace(go.Scatter(
             x=totals.index,
             y=totals.values,
             name="<b>Total du secteur</b>",
-            mode="text",  # Reste en texte pour le total
+            mode="text",
             text=totals.values,
             textposition="top center",
             hovertemplate="Total : %{y}<extra></extra>",
             showlegend=False
         ))
 
+    # Mise en page, positionnement de la légende et inclinaison des étiquettes
     fig.update_layout(
         title_x=0.5,
         barmode="stack",
@@ -43,13 +50,14 @@ def make_type_bar_by_zone(interventions):
         legend=dict(x=1.02, y=1, xanchor="left", yanchor="top"),
         margin=dict(l=65, r=210, t=65, b=135),
     )
-
     fig.update_xaxes(tickangle=-45)
     
     return finish_figure(fig, 600)
 
+# STRUCTURE DE LA SECTION HTML
 def comparison_section(interventions):
     return html.Section([
+        # En-tête et texte explicatif
         html.Div([
             html.H2("Quels types d'incendies dominent selon les secteurs ?"),
             html.P("Chaque quartier de Montréal possède sa propre identité, allant des zones denses à d’autres plus verdoyantes"
@@ -63,8 +71,10 @@ def comparison_section(interventions):
             ]),
         ], className="section-text"),
         
+        # Intégration du graphique
         graph_card(figure=make_type_bar_by_zone(interventions), height=600),
 
+        # Bouton d'accessibilité décrivant le graphique
         button_description(button_id="viz1",
                            description=[
                                html.Br(),
@@ -76,6 +86,7 @@ def comparison_section(interventions):
                                 html.Hr(style={"marginTop": "20px", "marginBottom": "20px", "borderTop": "1px solid #ccc"}),
                                 ]),
         
+        # Paragraphe d'analyse
         html.P("L’arrondissement Ville-Marie domine largement le bilan avec le nombre d’interventions le plus élevé de "
         "la métropole, suivi par les secteurs denses de Mercier-Hochelaga-Maisonneuve et du Plateau-Mont-Royal. Cela "
         "s'explique par son statut de centre-ville où la forte densité d'activités et de population multiplie par conséquent "

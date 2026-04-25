@@ -1,3 +1,4 @@
+# IMPORTS ET DÉPENDANCES
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -5,13 +6,16 @@ from plotly.subplots import make_subplots
 from dash import html
 from utils import finish_figure, SEVERITY_ORDER, SEVERITY_COLORS, graph_card, button_description
 
+# CRÉATION DU BOXPLOT
 def make_boxplot(interventions):
+    # Conservation des 15 types d'incidents les plus fréquents
     top_types = interventions["incident_type"].value_counts().head(15).index
     df = interventions[interventions["incident_type"].isin(top_types)].copy()
     df["nombre_unites"] = df["nombre_unites"].fillna(0)
 
     stats_rows, outlier_rows = [], []
 
+    # Calcul des quartiles, médianes et limites pour chaque boîte
     for incident_type, s in df.groupby("incident_type")["nombre_unites"]:
         s = s.dropna().sort_values()
         if s.empty: continue
@@ -29,6 +33,7 @@ def make_boxplot(interventions):
             "q1": q1, "median": median, "q3": q3, "upper_fence": upper_fence, "max": s.max(),
         })
 
+        # Isolement des outliers
         outliers = s[(s < lower_fence) | (s > upper_fence)]
         if not outliers.empty:
             low_ex, high_ex = outliers.min(), outliers.max()
@@ -39,6 +44,7 @@ def make_boxplot(interventions):
     stats_df = pd.DataFrame(stats_rows).sort_values("median", ascending=False)
     order = stats_df["incident_type"].tolist()
 
+    # Construction du graphique avec les boîtes horizontales
     fig = go.Figure()
     for row in stats_df.itertuples(index=False):
         fig.add_trace(go.Box(
@@ -49,6 +55,7 @@ def make_boxplot(interventions):
             hovertemplate="<b>%{customdata[7]}</b><br>min: %{customdata[0]:.0f}<br>lower fence: %{customdata[1]:.0f}<br>q1: %{customdata[2]:.0f}<br>median: %{customdata[3]:.0f}<br>q3: %{customdata[4]:.0f}<br>upper fence: %{customdata[5]:.0f}<br>max: %{customdata[6]:.0f}<extra></extra>",
         ))
 
+    # Ajout des outliers par-dessus les boîtes
     if outlier_rows:
         for incident_type, g in pd.DataFrame(outlier_rows).groupby("incident_type", sort=False):
             fig.add_trace(go.Scatter(
@@ -57,6 +64,7 @@ def make_boxplot(interventions):
                 customdata=g[["label"]].values, hovertemplate="%{x:.0f}<br>%{customdata[0]}<extra></extra>",
             ))
 
+    # Mise en page finale et configuration de l'infobulle
     fig.update_layout(
         title="Distribution des unités mobilisées par type d'incident", title_x=0.5,
         xaxis_title="Nombre d'unités (intensité)", yaxis_title="Type d'incident",
@@ -66,14 +74,17 @@ def make_boxplot(interventions):
     return finish_figure(fig, 580)
 
 
+# CRÉATION DES WAFFLE CHARTS
 def make_waffle(interventions):
     df = interventions[interventions["zone"] != "Indéterminé"].copy()
     zones = sorted(df["zone"].unique())
     n_cols = 4
     n_rows = int(np.ceil(len(zones) / n_cols))
 
+    # Initialisation de la grille de sous-graphiques
     fig = make_subplots(rows=n_rows, cols=n_cols, subplot_titles=zones, horizontal_spacing=0.02, vertical_spacing=0.04)
 
+    # Ajout d'une trace invisible pour générer la légende
     for category, color in zip(SEVERITY_ORDER, SEVERITY_COLORS):
         fig.add_trace(go.Scatter(
             x=[None], y=[None], mode="markers", marker=dict(size=12, color=color, symbol="square"),
@@ -83,9 +94,12 @@ def make_waffle(interventions):
     color_index = {cat: i for i, cat in enumerate(SEVERITY_ORDER)}
     colorscale = [[i / (len(SEVERITY_COLORS) - 1), color] for i, color in enumerate(SEVERITY_COLORS)]
 
+    # Calcul et remplissage de la martrice 10x10 pour chaque quartier
     for i, zone in enumerate(zones):
         part = df[df["zone"] == zone]
         cells = (part["severity"].value_counts(normalize=True).reindex(SEVERITY_ORDER, fill_value=0) * 100).round().astype(int)
+        
+        # Ajustement des arrondis pour garantir exactement 100 cases
         diff = 100 - int(cells.sum())
         if diff: cells.loc[cells.idxmax()] += diff
 
@@ -95,11 +109,13 @@ def make_waffle(interventions):
         values = (values + [SEVERITY_ORDER[0]] * 100)[:100]
         matrix = np.array(values).reshape(10, 10)
 
+        # Ajout du gaufrier en tant que heatmap
         fig.add_trace(go.Heatmap(
             z=[[color_index[c] for c in row] for row in matrix], text=matrix,
             hovertemplate="%{text}<extra></extra>", colorscale=colorscale, zmin=0, zmax=len(SEVERITY_COLORS) - 1,
             showscale=False, xgap=1, ygap=1,), row=i // n_cols + 1, col=i % n_cols + 1)
 
+    # Configuration de la grille globale et suppression des axes superflus
     fig.update_layout(
         title_text="Gravité des interventions par arrondissement", title_x=0.5,
         height=max(900, 220 * n_rows), margin=dict(t=100, b=40, l=40, r=210),
@@ -117,10 +133,13 @@ def make_waffle(interventions):
     return fig
 
 
+# STRUCTURE DE LA SECTION HTML
 def distribution_section(interventions):
+    # Calcul dynamique de la hauteur nécessaire pour les gaufriers
     waffle_height = max(900, 220 * int(np.ceil(len(interventions[interventions["zone"] != "Indéterminé"]["zone"].unique()) / 4)))
     
     return html.Section([
+        # En-tête et texte explicatif
         html.Div([
             html.H2("Combien d'unités sont mobilisées par type d'incident et par arrondissement ?"),
             html.P("Toutes les interventions ne se ressemblent pas. En effet, l’effort déployé change radicalement selon "
@@ -137,11 +156,12 @@ def distribution_section(interventions):
             ]),
         ], className="section-text"),
         
+        # Intégration des graphiques
         graph_card(figure=make_boxplot(interventions), height=580),
         graph_card(figure=make_waffle(interventions), height=waffle_height),
         
-        
-         button_description(button_id="viz4",
+        # Bouton d'accessibilité décrivant les visualisations
+        button_description(button_id="viz4",
                            description=[
                                html.Br(),
                                "•   Le premier graphique est un diagramme en boîtes (boxplot) horizontal intitulé « Distribution des unités mobilisées "
@@ -157,8 +177,7 @@ def distribution_section(interventions):
                                 html.Hr(style={"marginTop": "20px", "marginBottom": "20px", "borderTop": "1px solid #ccc"}),
                                 ]),
  
-                
-        
+        # Paragraphes d'analyse
         html.P("L'analyse de la mobilisation montre que la vaste majorité des incidents quotidiens, tels que les feux de "
         "déchets ou de broussailles, sont maîtrisés avec seulement une à deux unités. Cependant, dès que l'on passe aux "
         "alertes de niveau supérieur comme les incendies de bâtiments confirmés, l'effort augmente pour atteindre souvent "
