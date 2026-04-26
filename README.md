@@ -1,4 +1,4 @@
-# Titre du projet
+# Les interventions incendie à Montréal
 
 Projet de visualisation de données du cours INF8808. Porte sur des visualisations de la répartition d'incendies et d'interventions sur lîle de Montréal.
 
